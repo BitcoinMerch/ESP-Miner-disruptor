@@ -12,6 +12,7 @@
 #include "TMP1075.h"
 #include "TPS546.h"
 #include "vcore.h"
+#include "adc.h"
 #include <string.h>
 
 #define POLL_RATE 2000
@@ -64,6 +65,8 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
             GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
             EMC2101_set_fan_speed( perc );
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 	return result;
@@ -109,6 +112,8 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 }
 			}
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 
@@ -133,6 +138,19 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             
                 power_management->fan_rpm = EMC2101_get_fan_speed();
             
+                break;
+            case DEVICE_DISRUPTOR:
+                /* read temperature sensor */
+                uint8_t new_temp = TMP1075_read_temperature(0);
+                ESP_LOGI(TAG, "Board Temp: %d", new_temp);
+                /* TODO get actual average value for temperature */
+                power_management->chip_temp_avg = new_temp;
+
+                /* read current sensor */
+                uint16_t new_curr = ADC_get_curr();
+                ESP_LOGI(TAG, "Board current: %d", new_curr);
+                power_management->current = (ADC_get_curr() * 2) / 1000;
+
                 break;
             default:
         }
@@ -202,6 +220,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 					}
 
                     break;
+                case DEVICE_DISRUPTOR:
+                    /* TODO get temperature into power_management->chip_temp_avg */
+                    break;
 
                 default:
             }
@@ -221,6 +242,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     power_management->fan_perc = fs;
                     EMC2101_set_fan_speed((float) fs / 100);
 
+                    break;
+
+                case DEVICE_DISRUPTOR:
                     break;
                 default:
             }

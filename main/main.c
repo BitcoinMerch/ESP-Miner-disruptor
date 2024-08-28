@@ -47,6 +47,11 @@ void app_main(void)
         GLOBAL_STATE.device_model = DEVICE_SUPRA;
         GLOBAL_STATE.asic_count = 1;
         GLOBAL_STATE.voltage_domain = 1;
+    } else if (strcmp(GLOBAL_STATE.device_model_str, "disruptor") == 0) {
+        ESP_LOGI(TAG, "DEVICE: Disruptor");
+        GLOBAL_STATE.device_model = DEVICE_DISRUPTOR;
+        GLOBAL_STATE.asic_count = 1;
+        GLOBAL_STATE.voltage_domain = 1;
     } else {
         ESP_LOGE(TAG, "Invalid DEVICE model");
         // maybe should return here to now execute anything with a faulty device parameter !
@@ -120,8 +125,10 @@ void app_main(void)
     xTaskCreate(SYSTEM_task, "SYSTEM_task", 4096, (void *) &GLOBAL_STATE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, (void *) &GLOBAL_STATE, 10, NULL);
 
-    // Create the LED strip manager task
-    xTaskCreate(RGB_LED_task, "RGB LED strip", 8192, (void *) &GLOBAL_STATE, 12, NULL);
+    if (GLOBAL_STATE.device_model == DEVICE_DISRUPTOR) {
+        // Create the LED strip manager task
+        xTaskCreate(RGB_LED_task, "RGB LED strip", 8192, (void *) &GLOBAL_STATE, 12, NULL);
+    }
 
     // pull the wifi credentials and hostname out of NVS
     char * wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);

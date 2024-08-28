@@ -65,11 +65,11 @@ void RGB_LED_task(void *pvParameters)
         {
             //int64_t duration = esp_timer_get_time() - time;
 
-            set_all_leds(0xFF, 0x00, 0x00, 75);
+            set_all_leds(0x80, 0x00, 0x00, 75);
             vTaskDelay(250 / portTICK_PERIOD_MS);
-            set_all_leds(0x00, 0xFF, 0x00, 75);
+            set_all_leds(0x00, 0x80, 0x00, 75);
             vTaskDelay(250 / portTICK_PERIOD_MS);
-            set_all_leds(0x00, 0x00, 0xFF, 75);
+            set_all_leds(0x00, 0x00, 0x80, 75);
             vTaskDelay(250 / portTICK_PERIOD_MS);
 
             vTaskDelay(30 / portTICK_PERIOD_MS); // don't starve idle task and trigger watchdog timer

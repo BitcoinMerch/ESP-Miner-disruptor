@@ -113,6 +113,11 @@ static void _init_system(GlobalState * GLOBAL_STATE)
         case DEVICE_SUPRA:
             EMC2101_init(nvs_config_get_u16(NVS_CONFIG_INVERT_FAN_POLARITY, 1));
             break;
+        case DEVICE_DISRUPTOR:
+            if (TMP1075_installed(0)) {
+                ESP_LOGI(TAG, "Temperature sensor 0: %d", TMP1075_read_temperature(0));
+            }
+            break;
         default:
     }
 
@@ -136,6 +141,8 @@ static void _init_system(GlobalState * GLOBAL_STATE)
                 // clear the oled screen
                 OLED_fill(0);
             }
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -171,6 +178,8 @@ static void _show_overheat_screen(GlobalState * GLOBAL_STATE)
                 OLED_writeString(0, 3, "information");
             }
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
             break;
     }
@@ -195,6 +204,8 @@ static void _update_hashrate(GlobalState * GLOBAL_STATE)
                     module->current_hashrate, efficiency);
             OLED_writeString(0, 0, module->oled_buf);
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 }
@@ -214,6 +225,8 @@ static void _update_shares(GlobalState * GLOBAL_STATE)
             memset(module->oled_buf, 0, 20);
             snprintf(module->oled_buf, 20, "A/R: %llu/%llu", module->shares_accepted, module->shares_rejected);
             OLED_writeString(0, 1, module->oled_buf);
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -236,6 +249,12 @@ static void _update_best_diff(GlobalState * GLOBAL_STATE)
             snprintf(module->oled_buf, 20, module->FOUND_BLOCK ? "!!! BLOCK FOUND !!!" : "BD: %s", module->best_diff_string);
             OLED_writeString(0, 3, module->oled_buf);
             break;
+        case DEVICE_DISRUPTOR:
+            if (module->FOUND_BLOCK) {
+                /* We found a block! */
+                /* Do something with the LEDs to alert the user */
+            }
+            break;
         default:
     }
 }
@@ -250,6 +269,8 @@ static void _clear_display(GlobalState * GLOBAL_STATE)
             OLED_clearLine(1);
             OLED_clearLine(2);
             OLED_clearLine(3);
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -282,6 +303,8 @@ static void _update_system_info(GlobalState * GLOBAL_STATE)
                 snprintf(module->oled_buf, 20, " %i mV: %i mA", (int) power_management->voltage, (int) power_management->current);
                 OLED_writeString(0, 3, module->oled_buf);
             }
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -319,6 +342,8 @@ static void _update_esp32_info(GlobalState * GLOBAL_STATE)
                 OLED_writeString(0, 3, esp_app_get_description()->version);
             }
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 }
@@ -336,6 +361,8 @@ static void _init_connection(GlobalState * GLOBAL_STATE)
                 snprintf(module->oled_buf, 20, "Connecting to SSID:");
                 OLED_writeString(0, 0, module->oled_buf);
             }
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -365,6 +392,8 @@ static void _update_connection(GlobalState * GLOBAL_STATE)
                 snprintf(module->oled_buf, 20, ap_ssid);
                 OLED_writeString(0, 3, module->oled_buf);
             }
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
@@ -396,6 +425,8 @@ static void _update_system_performance(GlobalState * GLOBAL_STATE)
                 OLED_writeString(0, 2, module->oled_buf);
             }
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 }
@@ -416,6 +447,8 @@ static void show_ap_information(const char * error, GlobalState * GLOBAL_STATE)
                 generate_ssid(ap_ssid);
                 OLED_writeString(0, 2, ap_ssid);
             }
+            break;
+        case DEVICE_DISRUPTOR:
             break;
         default:
     }
