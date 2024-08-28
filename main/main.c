@@ -16,6 +16,7 @@
 #include "serial.h"
 #include "stratum_task.h"
 #include "user_input_task.h"
+#include "rgb_led_task.h"
 
 static GlobalState GLOBAL_STATE = {.extranonce_str = NULL, .extranonce_2_len = 0, .abandon_work = 0, .version_mask = 0};
 
@@ -119,6 +120,9 @@ void app_main(void)
     xTaskCreate(SYSTEM_task, "SYSTEM_task", 4096, (void *) &GLOBAL_STATE, 3, NULL);
     xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, (void *) &GLOBAL_STATE, 10, NULL);
 
+    // Create the LED strip manager task
+    xTaskCreate(RGB_LED_task, "RGB LED strip", 8192, (void *) &GLOBAL_STATE, 12, NULL);
+
     // pull the wifi credentials and hostname out of NVS
     char * wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
     char * wifi_pass = nvs_config_get_string(NVS_CONFIG_WIFI_PASS, WIFI_PASS);
@@ -166,7 +170,7 @@ void app_main(void)
 
     xTaskCreate(USER_INPUT_task, "user input", 8192, (void *) &GLOBAL_STATE, 5, NULL);
 
-
+#if 0
     if (GLOBAL_STATE.ASIC_functions.init_fn != NULL) {
         wifi_softap_off();
 
@@ -183,6 +187,7 @@ void app_main(void)
         xTaskCreate(ASIC_task, "asic", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL);
     }
+#endif
 }
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)

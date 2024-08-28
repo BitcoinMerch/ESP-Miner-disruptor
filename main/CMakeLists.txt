@@ -7,6 +7,7 @@ SRCS
     "i2c_master.c"
     "INA260.c"
     "led_controller.c"
+    "led_strip.c"
     "main.c"
     "nvs_config.c"
     "oled.c"
@@ -23,6 +24,7 @@ SRCS
     "./tasks/asic_result_task.c"
     "./tasks/user_input_task.c"
     "./tasks/power_management_task.c"
+    "./tasks/rgb_led_task.c"
 
 INCLUDE_DIRS
     "."
