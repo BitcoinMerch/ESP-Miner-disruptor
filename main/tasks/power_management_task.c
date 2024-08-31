@@ -148,8 +148,14 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 
                 /* read current sensor */
                 uint16_t new_curr_mA = (2 * ADC_get_curr());
-                ESP_LOGI(TAG, "Board current: %d", new_curr_mA);
-                power_management->current = new_curr_mA / 1000; /* report in AMPS */
+                power_management->voltage = 5000;  /* report in mV */
+                power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
+                power_management->power = power_management->voltage * (power_management->current / 1000);
+
+                ESP_LOGI(TAG, "Voltage: %f", power_management->voltage);
+                ESP_LOGI(TAG, "Current: %f", power_management->current);
+                ESP_LOGI(TAG, "Power: %f", power_management->power);
+
 
                 break;
             default:
