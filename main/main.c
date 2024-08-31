@@ -177,7 +177,6 @@ void app_main(void)
 
     xTaskCreate(USER_INPUT_task, "user input", 8192, (void *) &GLOBAL_STATE, 5, NULL);
 
-#if 0
     if (GLOBAL_STATE.ASIC_functions.init_fn != NULL) {
         wifi_softap_off();
 
@@ -194,7 +193,6 @@ void app_main(void)
         xTaskCreate(ASIC_task, "asic", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL);
     }
-#endif
 }
 
 void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)

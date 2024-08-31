@@ -147,9 +147,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->chip_temp_avg = new_temp;
 
                 /* read current sensor */
-                uint16_t new_curr = ADC_get_curr();
-                ESP_LOGI(TAG, "Board current: %d", new_curr);
-                power_management->current = (ADC_get_curr() * 2) / 1000;
+                uint16_t new_curr_mA = (2 * ADC_get_curr());
+                ESP_LOGI(TAG, "Board current: %d", new_curr_mA);
+                power_management->current = new_curr_mA / 1000; /* report in AMPS */
 
                 break;
             default:
