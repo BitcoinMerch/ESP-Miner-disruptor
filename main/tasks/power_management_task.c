@@ -152,9 +152,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
                 power_management->power = power_management->voltage * (power_management->current / 1000);
 
-                ESP_LOGI(TAG, "Voltage: %f", power_management->voltage);
-                ESP_LOGI(TAG, "Current: %f", power_management->current);
-                ESP_LOGI(TAG, "Power: %f", power_management->power);
+                ESP_LOGI(TAG, "Voltage: %.2f V", (power_management->voltage / 1000) );
+                ESP_LOGI(TAG, "Current: %.2f A", power_management->current);
+                ESP_LOGI(TAG, "Power: %.2f W", power_management->power);
 
 
                 break;
