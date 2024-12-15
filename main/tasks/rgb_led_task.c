@@ -130,11 +130,11 @@ void RGB_LED_task(void *pvParameters)
         //set_all_leds(0x30, 0x30, 0x30, 2000);
         //led_strip_show(&led_strip);
 
-        set_one_led(0, 0x30, 0x30, 0x30);
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //set_one_led(0, 0x30, 0x30, 0x30);
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-        set_one_led(7, 0x30, 0x30, 0x30);
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //set_one_led(7, 0x30, 0x30, 0x30);
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
 
         ptn = led_pattern_0;
         pattern_len = PATTERN_0_LEN;
@@ -143,15 +143,15 @@ void RGB_LED_task(void *pvParameters)
             /* display each frame one by one */
             for(framenum=0; framenum < pattern_len; framenum++) {
 
-                ESP_LOGI(TAG, "Frame: %d", framenum);
+                //ESP_LOGI(TAG, "Frame: %d", framenum);
 
                 /* set all the LEDs in this frame */
                 for(i=0; i<8; i++) {
                     //turn on all the LEDs up to [i]
-                    ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
-                        ptn[framenum].leds[i].level_red, 
-                        ptn[framenum].leds[i].level_green, 
-                        ptn[framenum].leds[i].level_blue);
+                    //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
+                    //    ptn[framenum].leds[i].level_red, 
+                    //    ptn[framenum].leds[i].level_green, 
+                    //    ptn[framenum].leds[i].level_blue);
                     led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
                                             ptn[framenum].leds[i].level_green, 
                                             ptn[framenum].leds[i].level_blue);
@@ -170,15 +170,15 @@ void RGB_LED_task(void *pvParameters)
             /* display each frame one by one */
             for(framenum=0; framenum < pattern_len; framenum++) {
 
-                ESP_LOGI(TAG, "Frame: %d", framenum);
+                //ESP_LOGI(TAG, "Frame: %d", framenum);
 
                 /* set all the LEDs in this frame */
                 for(i=0; i<=8; i++) {
                     //turn on all the LEDs up to [i]
-                    ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
-                        ptn[framenum].leds[i].level_red, 
-                        ptn[framenum].leds[i].level_green, 
-                        ptn[framenum].leds[i].level_blue);
+                    //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
+                    //    ptn[framenum].leds[i].level_red, 
+                    //    ptn[framenum].leds[i].level_green, 
+                    //    ptn[framenum].leds[i].level_blue);
                     led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
                                             ptn[framenum].leds[i].level_green, 
                                             ptn[framenum].leds[i].level_blue);
