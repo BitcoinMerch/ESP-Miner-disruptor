@@ -1,0 +1,9 @@
+key,type,encoding,value
+main,namespace,,
+asicfrequency,data,u16,400
+asicvoltage,data,u16,1200
+asicmodel,data,string,BM1366
+devicemodel,data,string,disruptor
+boardversion,data,string,100
+wifissid,data,string,WifiName
+wifipass,data,string,password
