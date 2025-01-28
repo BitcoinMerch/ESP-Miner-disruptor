@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "nvs_config.h"
 #include "utils.h"
+#include "stratum_task.h"
+#include <lwip/tcpip.h>
 
 static const char *TAG = "asic_result";
 
@@ -13,11 +15,8 @@ void ASIC_result_task(void *pvParameters)
 {
     GlobalState *GLOBAL_STATE = (GlobalState *)pvParameters;
 
-    char *user = nvs_config_get_string(NVS_CONFIG_STRATUM_USER, STRATUM_USER);
-
     while (1)
     {
-
         task_result *asic_result = (*GLOBAL_STATE->ASIC_functions.receive_result_fn)(GLOBAL_STATE);
 
         if (asic_result == NULL)
@@ -29,7 +28,7 @@ void ASIC_result_task(void *pvParameters)
 
         if (GLOBAL_STATE->valid_jobs[job_id] == 0)
         {
-            ESP_LOGI(TAG, "Invalid job nonce found, 0x%02X", job_id);
+            ESP_LOGW(TAG, "Invalid job nonce found, 0x%02X", job_id);
             continue;
         }
 
@@ -44,8 +43,8 @@ void ASIC_result_task(void *pvParameters)
 
         if (nonce_diff > GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->pool_diff)
         {
-
-            STRATUM_V1_submit_share(
+            char * user = GLOBAL_STATE->SYSTEM_MODULE.is_using_fallback ? GLOBAL_STATE->SYSTEM_MODULE.fallback_pool_user : GLOBAL_STATE->SYSTEM_MODULE.pool_user;
+            int ret = STRATUM_V1_submit_share(
                 GLOBAL_STATE->sock,
                 user,
                 GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->jobid,
@@ -54,6 +53,10 @@ void ASIC_result_task(void *pvParameters)
                 asic_result->nonce,
                 asic_result->rolled_version ^ GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id]->version);
 
+            if (ret < 0) {
+                ESP_LOGI(TAG, "Unable to write share to socket. Closing connection. Ret: %d (errno %d: %s)", ret, errno, strerror(errno));
+                stratum_close_connection(GLOBAL_STATE);
+            }
         }
 
         SYSTEM_notify_found_nonce(GLOBAL_STATE, nonce_diff, job_id);

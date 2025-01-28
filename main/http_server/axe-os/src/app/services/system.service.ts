@@ -33,6 +33,7 @@ export class SystemService {
           coreVoltage: 1200,
           coreVoltageActual: 1200,
           hostname: "Bitaxe",
+          macAddr: "2C:54:91:88:C9:E3",
           ssid: "default",
           wifiPass: "password",
           wifiStatus: "Connected!",
@@ -44,9 +45,14 @@ export class SystemService {
           ASICModel: eASICModel.BM1366,
           stratumURL: "public-pool.io",
           stratumPort: 21496,
+          fallbackStratumURL: "test.public-pool.io",
+          fallbackStratumPort: 21497,
           stratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",
+          fallbackStratumUser: "bc1q99n3pu025yyu0jlywpmwzalyhm36tg5u37w20d.bitaxe-U1",
+          isUsingFallbackStratum: true,
           frequency: 485,
           version: "2.0",
+          idfVersion: "v5.1.2",
           boardVersion: "204",
           flipscreen: 1,
           invertscreen: 0,
@@ -64,7 +70,7 @@ export class SystemService {
   }
 
   public restart(uri: string = '') {
-    return this.httpClient.post(`${uri}/api/system/restart`, {});
+    return this.httpClient.post(`${uri}/api/system/restart`, {}, {responseType: 'text'});
   }
 
   public updateSystem(uri: string = '', update: any) {
@@ -87,14 +93,13 @@ export class SystemService {
             'Content-Type': 'application/octet-stream', // Set the content type
           },
         }).subscribe({
-          next: (e) => {
-
+          next: (event) => {
+            subscriber.next(event);
           },
           error: (err) => {
             subscriber.error(err)
           },
           complete: () => {
-            subscriber.next()
             subscriber.complete();
           }
         });

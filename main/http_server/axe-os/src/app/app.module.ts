@@ -11,26 +11,34 @@ import { ToastrModule } from 'ngx-toastr';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { EditComponent } from './components/edit/edit.component';
+import { PoolComponent } from './components/pool/pool.component';
+import { NetworkEditComponent } from './components/network-edit/network.edit.component';
 import { HomeComponent } from './components/home/home.component';
 import { LoadingComponent } from './components/loading/loading.component';
 import { LogsComponent } from './components/logs/logs.component';
+import { NetworkComponent } from './components/network/network.component';
 import { SettingsComponent } from './components/settings/settings.component';
 import { SwarmComponent } from './components/swarm/swarm.component';
+import { ThemeConfigComponent } from './components/design/theme-config.component';
+import { DesignComponent } from './components/design/design.component';
 import { AppLayoutModule } from './layout/app.layout.module';
 import { ANSIPipe } from './pipes/ansi.pipe';
 import { DateAgoPipe } from './pipes/date-ago.pipe';
 import { HashSuffixPipe } from './pipes/hash-suffix.pipe';
 import { PrimeNGModule } from './prime-ng.module';
-
-
+import { MessageModule } from 'primeng/message';
+import { TooltipModule } from 'primeng/tooltip';
 
 const components = [
   AppComponent,
   EditComponent,
+  NetworkEditComponent,
   HomeComponent,
   LoadingComponent,
+  NetworkComponent,
   SettingsComponent,
-  LogsComponent
+  LogsComponent,
+  PoolComponent
 ];
 
 @NgModule({
@@ -41,7 +49,10 @@ const components = [
     DateAgoPipe,
     SwarmComponent,
     SettingsComponent,
-    HashSuffixPipe
+    HashSuffixPipe,
+    ThemeConfigComponent,
+    DesignComponent,
+    PoolComponent
   ],
   imports: [
     BrowserModule,
@@ -55,7 +66,9 @@ const components = [
     BrowserAnimationsModule,
     CommonModule,
     PrimeNGModule,
-    AppLayoutModule
+    AppLayoutModule,
+    MessageModule,
+    TooltipModule
   ],
   providers: [
     { provide: LocationStrategy, useClass: HashLocationStrategy },
