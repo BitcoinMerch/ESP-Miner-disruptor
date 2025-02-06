@@ -23,8 +23,8 @@ typedef enum
     CLIENT_RECONNECT
 } stratum_method;
 
-static const int  STRATUM_ID_SUBSCRIBE    = 1;
-static const int  STRATUM_ID_CONFIGURE    = 2;
+static const int  STRATUM_ID_CONFIGURE    = 1;
+static const int  STRATUM_ID_SUBSCRIBE    = 2;
 
 typedef struct
 {
@@ -59,6 +59,7 @@ typedef struct
     uint32_t version_mask;
     // result
     bool response_success;
+    char * error_str;
 } StratumApiV1Message;
 
 void STRATUM_V1_reset_uid();
@@ -75,12 +76,12 @@ void STRATUM_V1_free_mining_notify(mining_notify *params);
 
 int STRATUM_V1_authenticate(int socket, const char *username, const char *pass);
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask);
+int STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask);
 
 int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty);
 
-void STRATUM_V1_submit_share(int socket, const char *username, const char *jobid,
-                             const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
-                             const uint32_t version);
+int STRATUM_V1_submit_share(int socket, const char *username, const char *jobid,
+                            const char *extranonce_2, const uint32_t ntime, const uint32_t nonce,
+                            const uint32_t version);
 
 #endif // STRATUM_API_H

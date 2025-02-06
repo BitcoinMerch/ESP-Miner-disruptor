@@ -37,11 +37,11 @@ void STRATUM_V1_initialize_buffer()
 {
     json_rpc_buffer = malloc(BUFFER_SIZE);
     json_rpc_buffer_size = BUFFER_SIZE;
-    memset(json_rpc_buffer, 0, BUFFER_SIZE);
     if (json_rpc_buffer == NULL) {
         printf("Error: Failed to allocate memory for buffer\n");
         exit(1);
     }
+    memset(json_rpc_buffer, 0, BUFFER_SIZE);
 }
 
 void cleanup_stratum_buffer()
@@ -90,7 +90,7 @@ char * STRATUM_V1_receive_jsonrpc_line(int sockfd)
             memset(recv_buffer, 0, BUFFER_SIZE);
             nbytes = recv(sockfd, recv_buffer, BUFFER_SIZE - 1, 0);
             if (nbytes == -1) {
-                ESP_LOGI(TAG, "Error: recv");
+                ESP_LOGI(TAG, "Error: recv (errno %d: %s)", errno, strerror(errno));
                 if (json_rpc_buffer) {
                     free(json_rpc_buffer);
                     json_rpc_buffer=0;
@@ -146,6 +146,7 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
         // parse results
         cJSON * result_json = cJSON_GetObjectItem(json, "result");
         cJSON * error_json = cJSON_GetObjectItem(json, "error");
+        cJSON * reject_reason_json = cJSON_GetObjectItem(json, "reject-reason");
 
         //if the result is null, then it's a fail
         if (result_json == NULL) {
@@ -157,6 +158,15 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
                 result = STRATUM_RESULT_SETUP;
             } else {
                 result = STRATUM_RESULT;
+            }
+            if (cJSON_IsArray(error_json)) {
+                int len = cJSON_GetArraySize(error_json);
+                if (len >= 2) {
+                    cJSON * error_msg = cJSON_GetArrayItem(error_json, 1);
+                    if (cJSON_IsString(error_msg)) {
+                        message->error_str = strdup(cJSON_GetStringValue(error_msg));
+                    }
+                }
             }
             message->response_success = false;
 
@@ -171,6 +181,9 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
                 message->response_success = true;
             } else {
                 message->response_success = false;
+                if (cJSON_IsString(reject_reason_json)) {
+                    message->error_str = strdup(cJSON_GetStringValue(reject_reason_json));
+                }                
             }
         
         //if the id is STRATUM_ID_SUBSCRIBE parse it
@@ -235,7 +248,7 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
         }
         new_work->merkle_branches = malloc(HASH_SIZE * new_work->n_merkle_branches);
         for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
-            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE * 2);
+            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE);
         }
 
         new_work->version = strtoul(cJSON_GetArrayItem(params, 5)->valuestring, NULL, 16);
@@ -310,13 +323,12 @@ int STRATUM_V1_subscribe(int socket, char * model)
 {
     // Subscribe
     char subscribe_msg[BUFFER_SIZE];
-    const esp_app_desc_t *app_desc = esp_ota_get_app_description();
+    const esp_app_desc_t *app_desc = esp_app_get_description();
     const char *version = app_desc->version;	
     sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bitaxe/%s/%s\"]}\n", send_uid++, model, version);
     debug_stratum_tx(subscribe_msg);
-    write(socket, subscribe_msg, strlen(subscribe_msg));
 
-    return 1;
+    return write(socket, subscribe_msg, strlen(subscribe_msg));
 }
 
 int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty)
@@ -324,9 +336,8 @@ int STRATUM_V1_suggest_difficulty(int socket, uint32_t difficulty)
     char difficulty_msg[BUFFER_SIZE];
     sprintf(difficulty_msg, "{\"id\": %d, \"method\": \"mining.suggest_difficulty\", \"params\": [%ld]}\n", send_uid++, difficulty);
     debug_stratum_tx(difficulty_msg);
-    write(socket, difficulty_msg, strlen(difficulty_msg));
 
-    return 1;
+    return write(socket, difficulty_msg, strlen(difficulty_msg));
 }
 
 int STRATUM_V1_authenticate(int socket, const char * username, const char * pass)
@@ -336,9 +347,7 @@ int STRATUM_V1_authenticate(int socket, const char * username, const char * pass
             pass);
     debug_stratum_tx(authorize_msg);
 
-    write(socket, authorize_msg, strlen(authorize_msg));
-
-    return 1;
+    return write(socket, authorize_msg, strlen(authorize_msg));
 }
 
 /// @param socket Socket to write to
@@ -347,7 +356,7 @@ int STRATUM_V1_authenticate(int socket, const char * username, const char * pass
 /// @param ntime The hex-encoded time value use in the block header.
 /// @param extranonce_2 The hex-encoded value of extra nonce 2.
 /// @param nonce The hex-encoded nonce value to use in the block header.
-void STRATUM_V1_submit_share(int socket, const char * username, const char * jobid, const char * extranonce_2, const uint32_t ntime,
+int STRATUM_V1_submit_share(int socket, const char * username, const char * jobid, const char * extranonce_2, const uint32_t ntime,
                              const uint32_t nonce, const uint32_t version)
 {
     char submit_msg[BUFFER_SIZE];
@@ -355,10 +364,11 @@ void STRATUM_V1_submit_share(int socket, const char * username, const char * job
             "{\"id\": %d, \"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%08lx\", \"%08lx\", \"%08lx\"]}\n",
             send_uid++, username, jobid, extranonce_2, ntime, nonce, version);
     debug_stratum_tx(submit_msg);
-    write(socket, submit_msg, strlen(submit_msg));
+
+    return write(socket, submit_msg, strlen(submit_msg));
 }
 
-void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
+int STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
 {
     char configure_msg[BUFFER_SIZE * 2];
     sprintf(configure_msg,
@@ -366,9 +376,8 @@ void STRATUM_V1_configure_version_rolling(int socket, uint32_t * version_mask)
             "\"ffffffff\"}]}\n",
             send_uid++);
     debug_stratum_tx(configure_msg);
-    write(socket, configure_msg, strlen(configure_msg));
 
-    return;
+    return write(socket, configure_msg, strlen(configure_msg));
 }
 
 static void debug_stratum_tx(const char * msg)

@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { startWith } from 'rxjs';
+import { startWith, Subject, takeUntil } from 'rxjs';
 import { LoadingService } from 'src/app/services/loading.service';
 import { SystemService } from 'src/app/services/system.service';
 import { eASICModel } from 'src/models/enum/eASICModel';
@@ -12,14 +12,14 @@ import { eASICModel } from 'src/models/enum/eASICModel';
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss']
 })
-export class EditComponent implements OnInit {
+export class EditComponent implements OnInit, OnDestroy {
 
   public form!: FormGroup;
 
   public firmwareUpdateProgress: number | null = null;
   public websiteUpdateProgress: number | null = null;
 
-
+  public savedChanges: boolean = false;
   public devToolsOpen: boolean = false;
   public eASICModel = eASICModel;
   public ASICModel!: eASICModel;
@@ -69,6 +69,26 @@ export class EditComponent implements OnInit {
     { name: '575', value: 575 },
   ];
 
+  public BM1370DropdownFrequency = [
+    { name: '400', value: 400 },
+    { name: '490', value: 490 },
+    { name: '525 (default)', value: 525 },
+    { name: '550', value: 550 },
+    { name: '575', value: 575 },
+    //{ name: '596', value: 596 },
+    { name: '600', value: 600 },
+    { name: '625', value: 625 },
+  ];
+
+  public BM1370CoreVoltage = [
+    { name: '1000', value: 1000 },
+    { name: '1060', value: 1060 },
+    { name: '1100', value: 1100 },
+    { name: '1150 (default)', value: 1150 },
+    { name: '1200', value: 1200 },
+    { name: '1250', value: 1250 },
+  ];
+
   public BM1397CoreVoltage = [
     { name: '1100', value: 1100 },
     { name: '1150', value: 1150 },
@@ -96,42 +116,29 @@ export class EditComponent implements OnInit {
     { name: '1300', value: 1300 },
   ];
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     private fb: FormBuilder,
     private systemService: SystemService,
     private toastr: ToastrService,
-    private toastrService: ToastrService,
     private loadingService: LoadingService
   ) {
-
-    window.addEventListener('resize', this.checkDevTools);
+    window.addEventListener('resize', this.checkDevTools.bind(this));
     this.checkDevTools();
-
   }
+
   ngOnInit(): void {
     this.systemService.getInfo(this.uri)
-      .pipe(this.loadingService.lockUIUntilComplete())
+      .pipe(
+        this.loadingService.lockUIUntilComplete(),
+        takeUntil(this.destroy$)
+      )
       .subscribe(info => {
         this.ASICModel = info.ASICModel;
         this.form = this.fb.group({
           flipscreen: [info.flipscreen == 1],
           invertscreen: [info.invertscreen == 1],
-          stratumURL: [info.stratumURL, [
-            Validators.required,
-            Validators.pattern(/^(?!.*stratum\+tcp:\/\/).*$/),
-            Validators.pattern(/^[^:]*$/),
-          ]],
-          stratumPort: [info.stratumPort, [
-            Validators.required,
-            Validators.pattern(/^[^:]*$/),
-            Validators.min(0),
-            Validators.max(65353)
-          ]],
-          stratumUser: [info.stratumUser, [Validators.required]],
-          stratumPassword: ['password', [Validators.required]],
-          hostname: [info.hostname, [Validators.required]],
-          ssid: [info.ssid, [Validators.required]],
-          wifiPass: ['password'],
           coreVoltage: [info.coreVoltage, [Validators.required]],
           frequency: [info.frequency, [Validators.required]],
           autofanspeed: [info.autofanspeed == 1, [Validators.required]],
@@ -141,7 +148,8 @@ export class EditComponent implements OnInit {
         });
 
         this.form.controls['autofanspeed'].valueChanges.pipe(
-          startWith(this.form.controls['autofanspeed'].value)
+          startWith(this.form.controls['autofanspeed'].value),
+          takeUntil(this.destroy$)
         ).subscribe(autofanspeed => {
           if (autofanspeed) {
             this.form.controls['fanspeed'].disable();
@@ -152,8 +160,13 @@ export class EditComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.checkDevTools.bind(this));
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-  private checkDevTools = () => {
+  private checkDevTools(): void {
     if (
       window.outerWidth - window.innerWidth > 160 ||
       window.outerHeight - window.innerHeight > 160
@@ -162,31 +175,109 @@ export class EditComponent implements OnInit {
     } else {
       this.devToolsOpen = false;
     }
-  };
+  }
 
   public updateSystem() {
 
     const form = this.form.getRawValue();
 
-    if (form.wifiPass === 'password') {
-      delete form.wifiPass;
-    }
-    if (form.stratumPassword === 'password') {
+    if (form.stratumPassword === '*****') {
       delete form.stratumPassword;
     }
-
-    form.overheat_mode = form.overheat_mode ? 1 : 0;
 
     this.systemService.updateSystem(this.uri, form)
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
-          this.toastr.success('Success!', 'Saved.');
+          const successMessage = this.uri ? `Saved settings for ${this.uri}` : 'Saved settings';
+          this.toastr.success(successMessage, 'Success!');
+          this.savedChanges = true;
         },
         error: (err: HttpErrorResponse) => {
-          this.toastr.error('Error.', `Could not save. ${err.message}`);
+          const errorMessage = this.uri ? `Could not save settings for ${this.uri}. ${err.message}` : `Could not save settings. ${err.message}`;
+          this.toastr.error(errorMessage, 'Error');
+          this.savedChanges = false;
         }
       });
+  }
+
+  showWifiPassword: boolean = false;
+  toggleWifiPasswordVisibility() {
+    this.showWifiPassword = !this.showWifiPassword;
+  }
+
+  disableOverheatMode() {
+    this.form.patchValue({ overheat_mode: 0 });
+    this.updateSystem();
+  }
+
+  public restart() {
+    this.systemService.restart(this.uri)
+      .pipe(this.loadingService.lockUIUntilComplete())
+      .subscribe({
+        next: () => {
+          const successMessage = this.uri ? `Bitaxe at ${this.uri} restarted` : 'Bitaxe restarted';
+          this.toastr.success(successMessage, 'Success');
+        },
+        error: (err: HttpErrorResponse) => {
+          const errorMessage = this.uri ? `Failed to restart device at ${this.uri}. ${err.message}` : `Failed to restart device. ${err.message}`;
+          this.toastr.error(errorMessage, 'Error');
+        }
+      });
+  }
+
+  getDropdownFrequency() {
+    // Get base frequency options based on ASIC model
+    let options = [];
+    switch(this.ASICModel) {
+        case this.eASICModel.BM1366: options = [...this.BM1366DropdownFrequency]; break;
+        case this.eASICModel.BM1368: options = [...this.BM1368DropdownFrequency]; break;
+        case this.eASICModel.BM1370: options = [...this.BM1370DropdownFrequency]; break;
+        case this.eASICModel.BM1397: options = [...this.BM1397DropdownFrequency]; break;
+        default: return [];
+    }
+
+    // Get current frequency value from form
+    const currentFreq = this.form?.get('frequency')?.value;
+
+    // If current frequency exists and isn't in the options
+    if (currentFreq && !options.some(opt => opt.value === currentFreq)) {
+        options.push({
+            name: `${currentFreq} (Custom)`,
+            value: currentFreq
+        });
+        // Sort options by frequency value
+        options.sort((a, b) => a.value - b.value);
+    }
+
+    return options;
+  }
+
+  getCoreVoltage() {
+    // Get base voltage options based on ASIC model
+    let options = [];
+    switch(this.ASICModel) {
+        case this.eASICModel.BM1366: options = [...this.BM1366CoreVoltage]; break;
+        case this.eASICModel.BM1368: options = [...this.BM1368CoreVoltage]; break;
+        case this.eASICModel.BM1370: options = [...this.BM1370CoreVoltage]; break;
+        case this.eASICModel.BM1397: options = [...this.BM1397CoreVoltage]; break;
+        default: return [];
+    }
+
+    // Get current voltage value from form
+    const currentVoltage = this.form?.get('coreVoltage')?.value;
+
+    // If current voltage exists and isn't in the options
+    if (currentVoltage && !options.some(opt => opt.value === currentVoltage)) {
+        options.push({
+            name: `${currentVoltage} (Custom)`,
+            value: currentVoltage
+        });
+        // Sort options by voltage value
+        options.sort((a, b) => a.value - b.value);
+    }
+
+    return options;
   }
 
 }

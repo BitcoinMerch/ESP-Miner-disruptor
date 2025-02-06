@@ -3,7 +3,8 @@
 
 #include "global_state.h"
 
-void SYSTEM_task(void * parameters);
+void SYSTEM_init_system(GlobalState * GLOBAL_STATE);
+void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE);
 
 void SYSTEM_notify_accepted_share(GlobalState * GLOBAL_STATE);
 void SYSTEM_notify_rejected_share(GlobalState * GLOBAL_STATE);

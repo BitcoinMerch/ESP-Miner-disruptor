@@ -1,6 +1,7 @@
 
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_psram.h"
 #include "nvs_flash.h"
 
 // #include "protocol_examples_common.h"
@@ -15,109 +16,63 @@
 #include "nvs_config.h"
 #include "serial.h"
 #include "stratum_task.h"
-#include "user_input_task.h"
+#include "i2c_bitaxe.h"
+#include "adc.h"
+#include "nvs_device.h"
+#include "self_test.h"
 
-static GlobalState GLOBAL_STATE = {.extranonce_str = NULL, .extranonce_2_len = 0, .abandon_work = 0, .version_mask = 0};
+static GlobalState GLOBAL_STATE = {
+    .extranonce_str = NULL, 
+    .extranonce_2_len = 0, 
+    .abandon_work = 0, 
+    .version_mask = 0,
+    .ASIC_initalized = false
+};
 
 static const char * TAG = "bitaxe";
-static const double NONCE_SPACE = 4294967296.0; //  2^32
 
 void app_main(void)
 {
     ESP_LOGI(TAG, "Welcome to the bitaxe - hack the planet!");
-    ESP_ERROR_CHECK(nvs_flash_init());
 
-    GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value = nvs_config_get_u16(NVS_CONFIG_ASIC_FREQ, CONFIG_ASIC_FREQUENCY);
-    ESP_LOGI(TAG, "NVS_CONFIG_ASIC_FREQ %f", (float)GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value);
-
-    GLOBAL_STATE.device_model_str = nvs_config_get_string(NVS_CONFIG_DEVICE_MODEL, "");
-    if (strcmp(GLOBAL_STATE.device_model_str, "max") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Max");
-        GLOBAL_STATE.device_model = DEVICE_MAX;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
-    } else if (strcmp(GLOBAL_STATE.device_model_str, "ultra") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Ultra");
-        GLOBAL_STATE.device_model = DEVICE_ULTRA;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
-    } else if (strcmp(GLOBAL_STATE.device_model_str, "supra") == 0) {
-        ESP_LOGI(TAG, "DEVICE: Supra");
-        GLOBAL_STATE.device_model = DEVICE_SUPRA;
-        GLOBAL_STATE.asic_count = 1;
-        GLOBAL_STATE.voltage_domain = 1;
+    if (!esp_psram_is_initialized()) {
+        ESP_LOGE(TAG, "No PSRAM available on ESP32 device!");
+        GLOBAL_STATE.psram_is_available = false;
     } else {
-        ESP_LOGE(TAG, "Invalid DEVICE model");
-        // maybe should return here to now execute anything with a faulty device parameter !
-        // this stops crashes/reboots and allows dev testing without an asic
-        GLOBAL_STATE.device_model = DEVICE_UNKNOWN;
-        GLOBAL_STATE.asic_count = -1;
-        GLOBAL_STATE.voltage_domain = 1;
-    }
-    GLOBAL_STATE.board_version = atoi(nvs_config_get_string(NVS_CONFIG_BOARD_VERSION, "000"));
-    ESP_LOGI(TAG, "Found Device Model: %s", GLOBAL_STATE.device_model_str);
-    ESP_LOGI(TAG, "Found Board Version: %d", GLOBAL_STATE.board_version);
-
-    GLOBAL_STATE.asic_model_str = nvs_config_get_string(NVS_CONFIG_ASIC_MODEL, "");
-    if (strcmp(GLOBAL_STATE.asic_model_str, "BM1366") == 0) {
-        ESP_LOGI(TAG, "ASIC: %dx BM1366 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1366_CORE_COUNT);
-        GLOBAL_STATE.asic_model = ASIC_BM1366;
-        AsicFunctions ASIC_functions = {.init_fn = BM1366_init,
-                                        .receive_result_fn = BM1366_proccess_work,
-                                        .set_max_baud_fn = BM1366_set_max_baud,
-                                        .set_difficulty_mask_fn = BM1366_set_job_difficulty_mask,
-                                        .send_work_fn = BM1366_send_work};
-        //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1366_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 2000; //ms
-        GLOBAL_STATE.initial_ASIC_difficulty = BM1366_INITIAL_DIFFICULTY;
-
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-    } else if (strcmp(GLOBAL_STATE.asic_model_str, "BM1368") == 0) {
-        ESP_LOGI(TAG, "ASIC: %dx BM1368 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1368_CORE_COUNT);
-        GLOBAL_STATE.asic_model = ASIC_BM1368;
-        AsicFunctions ASIC_functions = {.init_fn = BM1368_init,
-                                        .receive_result_fn = BM1368_proccess_work,
-                                        .set_max_baud_fn = BM1368_set_max_baud,
-                                        .set_difficulty_mask_fn = BM1368_set_job_difficulty_mask,
-                                        .send_work_fn = BM1368_send_work};
-        //GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1368_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // version-rolling so Small Cores have different Nonce Space
-        GLOBAL_STATE.asic_job_frequency_ms = 500; //ms
-        GLOBAL_STATE.initial_ASIC_difficulty = BM1368_INITIAL_DIFFICULTY;
-
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-    } else if (strcmp(GLOBAL_STATE.asic_model_str, "BM1397") == 0) {
-        ESP_LOGI(TAG, "ASIC: %dx BM1397 (%" PRIu64 " cores)", GLOBAL_STATE.asic_count, BM1397_SMALL_CORE_COUNT);
-        GLOBAL_STATE.asic_model = ASIC_BM1397;
-        AsicFunctions ASIC_functions = {.init_fn = BM1397_init,
-                                        .receive_result_fn = BM1397_proccess_work,
-                                        .set_max_baud_fn = BM1397_set_max_baud,
-                                        .set_difficulty_mask_fn = BM1397_set_job_difficulty_mask,
-                                        .send_work_fn = BM1397_send_work};
-        GLOBAL_STATE.asic_job_frequency_ms = (NONCE_SPACE / (double) (GLOBAL_STATE.POWER_MANAGEMENT_MODULE.frequency_value * BM1397_SMALL_CORE_COUNT * 1000)) / (double) GLOBAL_STATE.asic_count; // no version-rolling so same Nonce Space is splitted between Small Cores
-        GLOBAL_STATE.initial_ASIC_difficulty = BM1397_INITIAL_DIFFICULTY;
-
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-    } else {
-        ESP_LOGE(TAG, "Invalid ASIC model");
-        AsicFunctions ASIC_functions = {.init_fn = NULL,
-                                        .receive_result_fn = NULL,
-                                        .set_max_baud_fn = NULL,
-                                        .set_difficulty_mask_fn = NULL,
-                                        .send_work_fn = NULL};
-        GLOBAL_STATE.ASIC_functions = ASIC_functions;
-        // maybe should return here to now execute anything with a faulty device parameter !
+        GLOBAL_STATE.psram_is_available = true;
     }
 
-    bool is_max = GLOBAL_STATE.asic_model == ASIC_BM1397;
-    uint64_t best_diff = nvs_config_get_u64(NVS_CONFIG_BEST_DIFF, 0);
-    uint16_t should_self_test = nvs_config_get_u16(NVS_CONFIG_SELF_TEST, 0);
-    if (should_self_test == 1 && !is_max && best_diff < 1) {
+    // Init I2C
+    ESP_ERROR_CHECK(i2c_bitaxe_init());
+    ESP_LOGI(TAG, "I2C initialized successfully");
+
+    //wait for I2C to init
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+
+    //Init ADC
+    ADC_init();
+
+    //initialize the ESP32 NVS
+    if (NVSDevice_init() != ESP_OK){
+        ESP_LOGE(TAG, "Failed to init NVS");
+        return;
+    }
+
+    //parse the NVS config into GLOBAL_STATE
+    if (NVSDevice_parse_config(&GLOBAL_STATE) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to parse NVS config");
+        return;
+    }
+
+    // Optionally hold the boot button
+    bool pressed = gpio_get_level(CONFIG_GPIO_BUTTON_BOOT) == 0; // LOW when pressed
+    //should we run the self test?
+    if (should_test(&GLOBAL_STATE) || pressed) {
         self_test((void *) &GLOBAL_STATE);
-        vTaskDelay(60 * 60 * 1000 / portTICK_PERIOD_MS);
+        return;
     }
 
-    xTaskCreate(SYSTEM_task, "SYSTEM_task", 4096, (void *) &GLOBAL_STATE, 3, NULL);
-    xTaskCreate(POWER_MANAGEMENT_task, "power mangement", 8192, (void *) &GLOBAL_STATE, 10, NULL);
+    SYSTEM_init_system(&GLOBAL_STATE);
 
     // pull the wifi credentials and hostname out of NVS
     char * wifi_ssid = nvs_config_get_string(NVS_CONFIG_WIFI_SSID, WIFI_SSID);
@@ -125,13 +80,19 @@ void app_main(void)
     char * hostname  = nvs_config_get_string(NVS_CONFIG_HOSTNAME, HOSTNAME);
 
     // copy the wifi ssid to the global state
-    strncpy(GLOBAL_STATE.SYSTEM_MODULE.ssid,
-            wifi_ssid,
-            sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid));
+    strncpy(GLOBAL_STATE.SYSTEM_MODULE.ssid, wifi_ssid, sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid));
     GLOBAL_STATE.SYSTEM_MODULE.ssid[sizeof(GLOBAL_STATE.SYSTEM_MODULE.ssid)-1] = 0;
 
-    // init and connect to wifi
-    wifi_init(wifi_ssid, wifi_pass, hostname);
+    // init AP and connect to wifi
+    wifi_init(wifi_ssid, wifi_pass, hostname, GLOBAL_STATE.SYSTEM_MODULE.ip_addr_str);
+
+    generate_ssid(GLOBAL_STATE.SYSTEM_MODULE.ap_ssid);
+
+    SYSTEM_init_peripherals(&GLOBAL_STATE);
+
+    xTaskCreate(POWER_MANAGEMENT_task, "power management", 8192, (void *) &GLOBAL_STATE, 10, NULL);
+
+    //start the API for AxeOS
     start_rest_server((void *) &GLOBAL_STATE);
     EventBits_t result_bits = wifi_connect();
 
@@ -161,11 +122,7 @@ void app_main(void)
     free(wifi_pass);
     free(hostname);
 
-    // set the startup_done flag
-    GLOBAL_STATE.SYSTEM_MODULE.startup_done = true;
-
-    xTaskCreate(USER_INPUT_task, "user input", 8192, (void *) &GLOBAL_STATE, 5, NULL);
-
+    GLOBAL_STATE.new_stratum_version_rolling_msg = false;
 
     if (GLOBAL_STATE.ASIC_functions.init_fn != NULL) {
         wifi_softap_off();
@@ -178,6 +135,8 @@ void app_main(void)
         SERIAL_set_baud((*GLOBAL_STATE.ASIC_functions.set_max_baud_fn)());
         SERIAL_clear_buffer();
 
+        GLOBAL_STATE.ASIC_initalized = true;
+
         xTaskCreate(stratum_task, "stratum admin", 8192, (void *) &GLOBAL_STATE, 5, NULL);
         xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, NULL);
         xTaskCreate(ASIC_task, "asic", 8192, (void *) &GLOBAL_STATE, 10, NULL);
@@ -185,13 +144,33 @@ void app_main(void)
     }
 }
 
-void MINER_set_wifi_status(wifi_status_t status, uint16_t retry_count)
+void MINER_set_wifi_status(wifi_status_t status, int retry_count, int reason)
 {
-    if (status == WIFI_RETRYING) {
-        snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Retrying: %d", retry_count);
-        return;
-    } else if (status == WIFI_CONNECT_FAILED) {
-        snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Connect Failed!");
-        return;
+    switch(status) {
+        case WIFI_CONNECTING:
+            snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Connecting...");
+            return;
+        case WIFI_CONNECTED:
+            snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Connected!");
+            return;
+        case WIFI_RETRYING:
+            // See https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h for codes
+            switch(reason) {
+                case 201:
+                    snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "No AP found (%d)", retry_count);
+                    return;
+                case 15:
+                case 205:
+                    snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Password error (%d)", retry_count);
+                    return;
+                default:
+                    snprintf(GLOBAL_STATE.SYSTEM_MODULE.wifi_status, 20, "Error %d (%d)", reason, retry_count);
+                    return;
+            }
     }
+    ESP_LOGW(TAG, "Unknown status: %d", status);
+}
+
+void MINER_set_ap_status(bool enabled) {
+    GLOBAL_STATE.SYSTEM_MODULE.ap_enabled = enabled;
 }

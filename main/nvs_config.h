@@ -10,8 +10,12 @@
 #define NVS_CONFIG_HOSTNAME "hostname"
 #define NVS_CONFIG_STRATUM_URL "stratumurl"
 #define NVS_CONFIG_STRATUM_PORT "stratumport"
+#define NVS_CONFIG_FALLBACK_STRATUM_URL "fbstratumurl"
+#define NVS_CONFIG_FALLBACK_STRATUM_PORT "fbstratumport"
 #define NVS_CONFIG_STRATUM_USER "stratumuser"
 #define NVS_CONFIG_STRATUM_PASS "stratumpass"
+#define NVS_CONFIG_FALLBACK_STRATUM_USER "fbstratumuser"
+#define NVS_CONFIG_FALLBACK_STRATUM_PASS "fbstratumpass"
 #define NVS_CONFIG_ASIC_FREQ "asicfrequency"
 #define NVS_CONFIG_ASIC_VOLTAGE "asicvoltage"
 #define NVS_CONFIG_ASIC_MODEL "asicmodel"
@@ -25,8 +29,12 @@
 #define NVS_CONFIG_BEST_DIFF "bestdiff"
 #define NVS_CONFIG_SELF_TEST "selftest"
 #define NVS_CONFIG_OVERHEAT_MODE "overheat_mode"
-
 #define NVS_CONFIG_SWARM "swarmconfig"
+
+// Theme configuration
+#define NVS_CONFIG_THEME_SCHEME "themescheme"
+#define NVS_CONFIG_THEME_NAME "themename"
+#define NVS_CONFIG_THEME_COLORS "themecolors"
 
 char * nvs_config_get_string(const char * key, const char * default_value);
 void nvs_config_set_string(const char * key, const char * default_value);
