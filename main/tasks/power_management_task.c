@@ -12,6 +12,8 @@
 #include "serial.h"
 #include "TPS546.h"
 #include "vcore.h"
+#include "adc.h"
+#include "TMP1075.h"
 
 #define GPIO_ASIC_ENABLE CONFIG_GPIO_ASIC_ENABLE
 #define GPIO_ASIC_RESET  CONFIG_GPIO_ASIC_RESET
@@ -71,6 +73,7 @@ static double automatic_fan_speed(float chip_temp, GlobalState * GLOBAL_STATE)
             GLOBAL_STATE->POWER_MANAGEMENT_MODULE.fan_perc = perc;
             EMC2101_set_fan_speed( perc );
             break;
+        case DEVICE_DISRUPTOR:
         default:
     }
 	return result;
@@ -117,6 +120,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
             break;
         case DEVICE_GAMMA:
             break;
+        case DEVICE_DISRUPTOR:
         default:
     }
 
@@ -154,6 +158,23 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     // The power reading from the TPS546 is only it's output power. So the rest of the Bitaxe power is not accounted for.
                     power_management->power += GAMMA_POWER_OFFSET; // Add offset for the rest of the Bitaxe power. TODO: this better.
                 break;
+            case DEVICE_DISRUPTOR:
+                /* read temperature sensor */
+                uint8_t new_temp = TMP1075_read_temperature(0);
+                ESP_LOGI(TAG, "Board Temp: %d", new_temp);
+                /* TODO get actual average value for temperature */
+                power_management->chip_temp_avg = new_temp;
+
+                /* read current sensor */
+                uint16_t new_curr_mA = (2 * ADC_get_curr());
+                power_management->voltage = 5000;  /* report in mV */
+                power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
+                power_management->power = power_management->voltage * (power_management->current / 1000);
+
+                ESP_LOGI(TAG, "Voltage: %.2f V", (power_management->voltage / 1000) );
+                ESP_LOGI(TAG, "Current: %.2f A", power_management->current);
+                ESP_LOGI(TAG, "Power: %.2f W", power_management->power);
+
             default:
         }
 
@@ -243,6 +264,9 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case DEVICE_DISRUPTOR:
+                power_management->chip_temp_avg = TMP1075_read_temperature(0);
+                break;
             default:
         }
 
@@ -262,6 +286,8 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     power_management->fan_perc = fs;
                     EMC2101_set_fan_speed((float) fs / 100);
 
+                    break;
+                case DEVICE_DISRUPTOR:
                     break;
                 default:
             }

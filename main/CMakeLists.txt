@@ -5,12 +5,14 @@ SRCS
     "EMC2101.c"
     "i2c_bitaxe.c"
     "INA260.c"
+    "led_strip.c"
     "main.c"
     "nvs_config.c"
     "display.c"
     "screen.c"
     "input.c"
     "system.c"
+    "TMP1075.c"
     "TPS546.c"
     "vcore.c"
     "work_queue.c"
@@ -25,6 +27,7 @@ SRCS
     "./tasks/asic_task.c"
     "./tasks/asic_result_task.c"
     "./tasks/power_management_task.c"
+    "./tasks/rgb_led_task.c"
 
 INCLUDE_DIRS
     "."

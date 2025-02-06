@@ -42,6 +42,9 @@ esp_err_t VCORE_init(GlobalState * global_state) {
             }
             break;
         // case DEVICE_HEX:
+        case DEVICE_DISRUPTOR:
+                ESP_LOGI(TAG, "Disruptor- no VCORE init");
+            break;
         default:
     }
     return ESP_OK;
@@ -95,6 +98,10 @@ esp_err_t VCORE_set_voltage(float core_voltage, GlobalState * global_state)
                 TPS546_set_vout(core_voltage * (float)global_state->voltage_domain);
             break;
         // case DEVICE_HEX:
+        case DEVICE_DISRUPTOR:
+                ESP_LOGI(TAG, "Disruptor- voltage is fixed");
+            break;
+
         default:
     }
 

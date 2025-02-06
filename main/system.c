@@ -29,6 +29,7 @@
 #include "input.h"
 #include "screen.h"
 #include "vcore.h"
+#include "TMP1075.h"
 
 static const char * TAG = "SystemModule";
 
@@ -110,6 +111,8 @@ void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE) {
             EMC2101_set_ideality_factor(EMC2101_IDEALITY_1_0319);
             EMC2101_set_beta_compensation(EMC2101_BETA_11);
             break;
+        case DEVICE_DISRUPTOR:
+            break;
         default:
     }
 
@@ -123,7 +126,15 @@ void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE) {
             }
             break;
         case DEVICE_GAMMA:
+        case DEVICE_DISRUPTOR:
         default:
+    }
+
+    //For disruptor, Probe the temperature sensor
+    ESP_LOGI(TAG, "Probing for temperature sensor");
+    TMP1075_init();
+    if (TMP1075_installed(0)) {
+        ESP_LOGI(TAG, "Temperature sensor 0: %d", TMP1075_read_temperature(0));
     }
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -146,6 +157,9 @@ void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE) {
             } else {
                 ESP_LOGI(TAG, "OLED init success!");
             }
+            break;
+        case DEVICE_DISRUPTOR:
+                ESP_LOGI(TAG, "No display on this device");
             break;
         default:
     }

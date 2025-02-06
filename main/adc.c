@@ -4,13 +4,14 @@
 #include "esp_adc/adc_cali_scheme.h"
 
 #define ADC_ATTEN   ADC_ATTEN_DB_12
-#define ADC_CHANNEL ADC_CHANNEL_1
 
 static const char * TAG = "ADC";
 
 static adc_cali_handle_t adc1_cali_chan1_handle;
 static adc_oneshot_unit_handle_t adc1_handle;
 
+static adc_cali_handle_t adc1_cali_chan3_handle;
+static adc_oneshot_unit_handle_t adc3_handle;
 
 /*---------------------------------------------------------------
         ADC Calibration
@@ -70,22 +71,23 @@ void ADC_init(void)
     // adc1_config_channel_atten(ADC1_CHANNEL_1, ADC_ATTEN_DB_12);
     // esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_DEFAULT, 0, &adc1_chars);
 
-
-    //-------------ADC1 Init---------------//
-    adc_oneshot_unit_init_cfg_t init_config1 = {
+    //-------------ADC Init---------------//
+    adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_1,
     };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle));
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc1_handle));
 
-    //-------------ADC1 Config---------------//
+    //-------------ADC Config---------------//
     adc_oneshot_chan_cfg_t config = {
         .atten = ADC_ATTEN,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_1, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_3, &config));
 
-    //-------------ADC1 Calibration Init---------------//
-    adc_calibration_init(ADC_UNIT_1, ADC_CHANNEL, ADC_ATTEN, &adc1_cali_chan1_handle);
+    //-------------ADC Calibration Init---------------//
+    adc_calibration_init(ADC_UNIT_1, ADC_CHANNEL_1, ADC_ATTEN, &adc1_cali_chan1_handle);
+    adc_calibration_init(ADC_UNIT_1, ADC_CHANNEL_3, ADC_ATTEN, &adc1_cali_chan3_handle);
 
 }
 
@@ -97,10 +99,26 @@ uint16_t ADC_get_vcore(void)
     // adc1_config_width(ADC_WIDTH_BIT_DEFAULT);
     // return esp_adc_cal_raw_to_voltage(adc1_get_raw(ADC_CHANNEL), &adc1_chars);
 
-    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL, &adc_raw[0][1]));
+    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_1, &adc_raw[0][1]));
     //ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC_CHANNEL, adc_raw[0][1]);
     ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan1_handle, adc_raw[0][1], &voltage[0][1]));
     //ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC_CHANNEL, voltage[0][1]);
 
     return (uint16_t)voltage[0][1];
 }
+
+// returns the ADC voltage in mV of the current shunt amplifier output
+// this voltage is used to measure system current of the disruptor
+uint16_t ADC_get_curr(void)
+{
+    int adc_raw[2][10];
+    int voltage[2][10];
+
+    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_3, &adc_raw[0][1]));
+    ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC_CHANNEL_3, adc_raw[0][1]);
+    ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan3_handle, adc_raw[0][1], &voltage[0][1]));
+    ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC_CHANNEL_3, voltage[0][1]);
+
+    return (uint16_t)voltage[0][1];
+}
+

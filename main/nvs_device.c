@@ -55,9 +55,14 @@ esp_err_t NVSDevice_parse_config(GlobalState * GLOBAL_STATE) {
         GLOBAL_STATE->device_model = DEVICE_SUPRA;
         GLOBAL_STATE->asic_count = 1;
         GLOBAL_STATE->voltage_domain = 1;
-        } else if (strcmp(GLOBAL_STATE->device_model_str, "gamma") == 0) {
+    } else if (strcmp(GLOBAL_STATE->device_model_str, "gamma") == 0) {
         ESP_LOGI(TAG, "DEVICE: Gamma");
         GLOBAL_STATE->device_model = DEVICE_GAMMA;
+        GLOBAL_STATE->asic_count = 1;
+        GLOBAL_STATE->voltage_domain = 1;
+    } else if (strcmp(GLOBAL_STATE->device_model_str, "disruptor") == 0) {
+        ESP_LOGI(TAG, "DEVICE: Disruptor");
+        GLOBAL_STATE->device_model = DEVICE_DISRUPTOR;
         GLOBAL_STATE->asic_count = 1;
         GLOBAL_STATE->voltage_domain = 1;
     } else {
