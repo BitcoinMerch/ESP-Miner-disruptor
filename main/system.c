@@ -164,12 +164,13 @@ void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE) {
         default:
     }
 
-    if (input_init(screen_next, toggle_wifi_softap) != ESP_OK) {
-        ESP_LOGW(TAG, "Input init failed!");
-    }
-
-    if (screen_start(GLOBAL_STATE) != ESP_OK) {
-        ESP_LOGW(TAG, "Screen init failed");
+    if (GLOBAL_STATE->device_model != DEVICE_DISRUPTOR) {
+        if (input_init(screen_next, toggle_wifi_softap) != ESP_OK) {
+            ESP_LOGW(TAG, "Input init failed!");
+        }
+        if (screen_start(GLOBAL_STATE) != ESP_OK) {
+            ESP_LOGW(TAG, "Screen init failed");
+        }
     }
 
     netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
