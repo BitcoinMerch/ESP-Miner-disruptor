@@ -166,7 +166,8 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 power_management->chip_temp_avg = new_temp;
 
                 /* read current sensor */
-                uint16_t new_curr_mA = (2 * ADC_get_curr());
+                //uint16_t new_curr_mA = (2 * ADC_get_curr());
+                uint16_t new_curr_mA = (2 * 1000);
                 power_management->voltage = 5000;  /* report in mV */
                 power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
                 power_management->power = power_management->voltage * (power_management->current / 1000);
