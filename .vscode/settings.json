@@ -1,9 +1,10 @@
 {
     "idf.flashType": "UART",
-    "idf.portWin": "COM72",
+    "idf.portWin": "COM4",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
-        "board/esp32s3-builtin.cfg"
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32s3.cfg"
     ],
     "files.associations": {
         "freertos.h": "c",

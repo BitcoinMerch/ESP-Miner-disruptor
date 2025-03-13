@@ -110,6 +110,17 @@ void set_all_leds(uint8_t rval, uint8_t gval, uint8_t bval, uint8_t delaytime)
     }
 }
 
+
+void RGB_Init(){
+    led_strip.access_semaphore = xSemaphoreCreateBinary();
+    bool led_init_ok = led_strip_init(&led_strip);
+    if (!led_init_ok) {
+        ESP_LOGI(TAG, "ERROR initializing LED Strip");
+    } else {
+        ESP_LOGI(TAG, "LED Strip initialized");
+    }
+}
+
 void RGB_LED_task(void *pvParameters)
 {
     led_frame *ptn;

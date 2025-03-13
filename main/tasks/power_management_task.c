@@ -163,7 +163,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 uint8_t new_temp = TMP1075_read_temperature(0);
                 ESP_LOGI(TAG, "Board Temp: %d", new_temp);
                 /* TODO get actual average value for temperature */
-                power_management->chip_temp_avg = new_temp;
+                power_management->chip_temp_avg = new_temp + 5;
 
                 /* read current sensor */
                 //uint16_t new_curr_mA = (2 * ADC_get_curr());

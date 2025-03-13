@@ -22,6 +22,7 @@
 #include "utils.h"
 #include "TPS546.h"
 #include "esp_psram.h"
+#include "rgb_led_task.h"
 
 #define GPIO_ASIC_ENABLE CONFIG_GPIO_ASIC_ENABLE
 
@@ -360,6 +361,13 @@ void self_test(void * pvParameters)
         tests_done(GLOBAL_STATE, TESTS_FAILED);
     }
 
+    switch (GLOBAL_STATE->device_model) {
+        case DEVICE_DISRUPTOR:
+            // Set LED white
+            break;
+        default:
+    }
+
     //test for number of ASICs
     if (SERIAL_init() != ESP_OK) {
         ESP_LOGE(TAG, "SERIAL init failed!");
@@ -517,10 +525,17 @@ void self_test(void * pvParameters)
         default:
     }
 
-    if (test_fan_sense(GLOBAL_STATE) != ESP_OK) {     
-        ESP_LOGE(TAG, "Fan test failed!"); 
-        tests_done(GLOBAL_STATE, TESTS_FAILED);
-    }
+    switch (GLOBAL_STATE->device_model) {
+        case DEVICE_MAX:
+        case DEVICE_ULTRA:
+        case DEVICE_SUPRA:
+        case DEVICE_GAMMA:
+            if (test_fan_sense(GLOBAL_STATE) != ESP_OK) {     
+                ESP_LOGE(TAG, "Fan test failed!"); 
+                tests_done(GLOBAL_STATE, TESTS_FAILED);
+            }
+            break;
+        default:
 
     tests_done(GLOBAL_STATE, TESTS_PASSED);
 
@@ -542,6 +557,12 @@ static void tests_done(GlobalState * GLOBAL_STATE, bool test_result)
 
     if (test_result == TESTS_FAILED) {
         ESP_LOGI(TAG, "SELF TESTS FAIL -- Press RESET to continue");  
+        switch (GLOBAL_STATE->device_model) {
+            case DEVICE_DISRUPTOR:
+                // set LED red
+                break;
+            default:
+        }
         while (1) {
             // Wait here forever until reset_self_test() gives the BootSemaphore
             if (xSemaphoreTake(BootSemaphore, portMAX_DELAY) == pdTRUE) {
@@ -554,6 +575,14 @@ static void tests_done(GlobalState * GLOBAL_STATE, bool test_result)
     } else {
         nvs_config_set_u16(NVS_CONFIG_SELF_TEST, 0);
         ESP_LOGI(TAG, "Self Tests Passed!!!");
+
+
+        switch (GLOBAL_STATE->device_model) {
+            case DEVICE_DISRUPTOR:
+                //Set LED green
+                break;
+            default:
+        }
     }
 
 }
