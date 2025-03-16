@@ -111,13 +111,34 @@ void set_all_leds(uint8_t rval, uint8_t gval, uint8_t bval, uint8_t delaytime)
 }
 
 
-void RGB_Init(){
+void RGB_Init()
+{
     led_strip.access_semaphore = xSemaphoreCreateBinary();
     bool led_init_ok = led_strip_init(&led_strip);
     if (!led_init_ok) {
         ESP_LOGI(TAG, "ERROR initializing LED Strip");
     } else {
         ESP_LOGI(TAG, "LED Strip initialized");
+    }
+}
+
+void set_leds_to_color(int LED_COLOR)
+{
+    switch (LED_COLOR) {
+        case LED_COLOR_RED:
+            set_all_leds(0x40, 0x00, 0x00, 0);
+            break;
+        case LED_COLOR_GREEN:
+            set_all_leds(0x00, 0x40, 0x00, 0);
+            break;
+        case LED_COLOR_BLUE:
+            set_all_leds(0x00, 0x00, 0x40, 0);
+            break;
+        case LED_COLOR_WHITE:
+            set_all_leds(0x040, 0x40, 0x40, 0);
+            break;
+        default:
+            ESP_LOGE(TAG, "ERROR- unknown LED color");
     }
 }
 

@@ -364,6 +364,7 @@ void self_test(void * pvParameters)
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_DISRUPTOR:
             // Set LED white
+            set_leds_to_color(LED_COLOR_WHITE);
             break;
         default:
     }
@@ -560,6 +561,7 @@ static void tests_done(GlobalState * GLOBAL_STATE, bool test_result)
         switch (GLOBAL_STATE->device_model) {
             case DEVICE_DISRUPTOR:
                 // set LED red
+                set_leds_to_color(LED_COLOR_RED);
                 break;
             default:
         }
@@ -580,6 +582,7 @@ static void tests_done(GlobalState * GLOBAL_STATE, bool test_result)
         switch (GLOBAL_STATE->device_model) {
             case DEVICE_DISRUPTOR:
                 //Set LED green
+                set_leds_to_color(LED_COLOR_GREEN);
                 break;
             default:
         }
