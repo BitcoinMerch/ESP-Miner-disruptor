@@ -537,6 +537,7 @@ void self_test(void * pvParameters)
             }
             break;
         default:
+    }
 
     tests_done(GLOBAL_STATE, TESTS_PASSED);
 
