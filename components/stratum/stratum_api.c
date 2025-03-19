@@ -325,7 +325,7 @@ int STRATUM_V1_subscribe(int socket, char * model)
     char subscribe_msg[BUFFER_SIZE];
     const esp_app_desc_t *app_desc = esp_app_get_description();
     const char *version = app_desc->version;	
-    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bitaxe/%s/%s\"]}\n", send_uid++, model, version);
+    sprintf(subscribe_msg, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"Disruptor/%s/%s\"]}\n", send_uid++, model, version);
     debug_stratum_tx(subscribe_msg);
 
     return write(socket, subscribe_msg, strlen(subscribe_msg));

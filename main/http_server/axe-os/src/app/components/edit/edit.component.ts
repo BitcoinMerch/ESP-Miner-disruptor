@@ -216,7 +216,7 @@ export class EditComponent implements OnInit, OnDestroy {
       .pipe(this.loadingService.lockUIUntilComplete())
       .subscribe({
         next: () => {
-          const successMessage = this.uri ? `Bitaxe at ${this.uri} restarted` : 'Bitaxe restarted';
+          const successMessage = this.uri ? `Disruptor at ${this.uri} restarted` : 'Disruptor restarted';
           this.toastr.success(successMessage, 'Success');
         },
         error: (err: HttpErrorResponse) => {

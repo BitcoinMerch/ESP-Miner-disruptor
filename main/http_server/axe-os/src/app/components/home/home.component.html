@@ -4,12 +4,12 @@
 <ng-container *ngIf="info$ | async as info; else loading">
     <!-- Temp warning alert -->
     <p-message *ngIf="info.overheat_mode" severity="error" styleClass="w-full mb-4 py-4 border-round-xl"
-        text="Bitaxe has overheated - See settings">
+        text="Disruptor has overheated - See settings">
     </p-message>
 
-    <p-message *ngIf="!info.frequency || info.frequency < 400" severity="warn" styleClass="w-full mb-4 py-4 border-round-xl"
-        text="Bitaxe frequency is set low - See settings">
-    </p-message>
+    <!-- <p-message *ngIf="!info.frequency || info.frequency < 400" severity="warn" styleClass="w-full mb-4 py-4 border-round-xl"
+        text="Disruptor frequency is set low - See settings">
+    </p-message> -->
 
     <div class="grid" *ngIf="info$ | async as info; else loading">
         <div class="col-12">

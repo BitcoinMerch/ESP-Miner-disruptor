@@ -232,7 +232,7 @@ esp_err_t test_voltage_regulator(GlobalState * GLOBAL_STATE) {
         return ESP_FAIL;
     }
 
-    // VCore regulator testing
+    // VCore regulator testingf
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_MAX:
         case DEVICE_ULTRA:
@@ -363,6 +363,11 @@ void self_test(void * pvParameters)
 
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_DISRUPTOR:
+            bool rgb_init = RGB_Init();
+            if(!rgb_init){
+                ESP_LOGE(TAG, "RGB Init failed");
+                tests_done(GLOBAL_STATE, TESTS_FAILED);
+            }
             // Set LED white
             set_leds_to_color(LED_COLOR_WHITE);
             break;

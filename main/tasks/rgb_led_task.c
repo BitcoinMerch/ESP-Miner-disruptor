@@ -111,7 +111,7 @@ void set_all_leds(uint8_t rval, uint8_t gval, uint8_t bval, uint8_t delaytime)
 }
 
 
-void RGB_Init()
+bool RGB_Init()
 {
     led_strip.access_semaphore = xSemaphoreCreateBinary();
     bool led_init_ok = led_strip_init(&led_strip);
@@ -120,6 +120,7 @@ void RGB_Init()
     } else {
         ESP_LOGI(TAG, "LED Strip initialized");
     }
+    return led_init_ok;
 }
 
 void set_leds_to_color(int LED_COLOR)
