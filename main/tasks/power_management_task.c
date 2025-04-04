@@ -18,6 +18,7 @@
 #define GPIO_ASIC_ENABLE CONFIG_GPIO_ASIC_ENABLE
 #define GPIO_ASIC_RESET  CONFIG_GPIO_ASIC_RESET
 #define GPIO_PLUG_SENSE  CONFIG_GPIO_PLUG_SENSE
+#define GPIO_VCORE_ENABLE  CONFIG_GPIO_PLUG_SENSE
 
 #define POLL_RATE 2000
 #define MAX_TEMP 90.0
@@ -121,6 +122,14 @@ void POWER_MANAGEMENT_task(void * pvParameters)
         case DEVICE_GAMMA:
             break;
         case DEVICE_DISRUPTOR:
+                // Configure VCORE enable pin as output, 1 is VCORE ON
+                gpio_config_t vcore_enable_conf = {
+                    .pin_bit_mask = (1ULL << GPIO_VCORE_ENABLE),
+                    .mode = GPIO_MODE_OUTPUT,
+                };
+                gpio_config(&vcore_enable_conf);
+                // turn on VCORE
+                gpio_set_level(GPIO_VCORE_ENABLE, 1);
         default:
     }
 
@@ -159,23 +168,24 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     power_management->power += GAMMA_POWER_OFFSET; // Add offset for the rest of the Bitaxe power. TODO: this better.
                 break;
             case DEVICE_DISRUPTOR:
-                /* read temperature sensor */
-                uint8_t new_temp = TMP1075_read_temperature(0);
-                ESP_LOGI(TAG, "Board Temp: %d", new_temp);
-                /* TODO get actual average value for temperature */
-                power_management->chip_temp_avg = new_temp + 5;
+                    /* read temperature sensor */
+                    uint8_t new_temp = TMP1075_read_temperature(0);
+                    ESP_LOGI(TAG, "Board Temp: %d", new_temp);
+                    /* TODO get actual average value for temperature */
+                    power_management->chip_temp_avg = new_temp + 5; /* adjust for sensor location */
 
-                /* read current sensor */
-                //uint16_t new_curr_mA = (2 * ADC_get_curr());
-                uint16_t new_curr_mA = (2 * 1000);
-                power_management->voltage = 5000;  /* report in mV */
-                power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
-                power_management->power = power_management->voltage * (power_management->current / 1000);
+                    /* read current sensor */
+                    /* TODO fix this ADC channel 2 reading */
+                    //uint16_t new_curr_mA = (2 * ADC_get_curr());
+                    uint16_t new_curr_mA = (2 * 1000);
+                    power_management->voltage = 5000;  /* report in mV */
+                    power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
+                    power_management->power = power_management->voltage * (power_management->current / 1000);
 
-                ESP_LOGI(TAG, "Voltage: %.2f V", (power_management->voltage / 1000) );
-                ESP_LOGI(TAG, "Current: %.2f A", power_management->current);
-                ESP_LOGI(TAG, "Power: %.2f W", power_management->power);
-
+                    ESP_LOGI(TAG, "Voltage: %.2f V", (power_management->voltage / 1000) );
+                    ESP_LOGI(TAG, "Current: %.2f A", power_management->current);
+                    ESP_LOGI(TAG, "Power: %.2f W", power_management->power);
+                break;
             default:
         }
 
@@ -268,7 +278,14 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 }
                 break;
             case DEVICE_DISRUPTOR:
-                power_management->chip_temp_avg = TMP1075_read_temperature(0);
+                power_management->chip_temp_avg = TMP1075_read_temperature(0) + 5; /* adjust for sensor location */
+                if (power_management->chip_temp_avg > THROTTLE_TEMP) {
+                    ESP_LOGE(TAG, "OVERHEAT ASIC %fC", power_management->chip_temp_avg );
+                    // turn off core voltage
+                    gpio_set_level(GPIO_VCORE_ENABLE, 0);
+                    nvs_config_set_u16(NVS_CONFIG_OVERHEAT_MODE, 1);
+                    exit(EXIT_FAILURE);
+                }
                 break;
             default:
         }
