@@ -96,8 +96,10 @@ void SYSTEM_init_system(GlobalState * GLOBAL_STATE)
 
 void SYSTEM_init_peripherals(GlobalState * GLOBAL_STATE) {
     // Initialize the core voltage regulator
-    VCORE_init(GLOBAL_STATE);
-    VCORE_set_voltage(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0, GLOBAL_STATE);
+    if((&GLOBAL_STATE->SYSTEM_MODULE)->overheat_mode == 0){
+        VCORE_init(GLOBAL_STATE);
+        VCORE_set_voltage(nvs_config_get_u16(NVS_CONFIG_ASIC_VOLTAGE, CONFIG_ASIC_VOLTAGE) / 1000.0, GLOBAL_STATE);
+    }
 
     //init the EMC2101, if we have one
     switch (GLOBAL_STATE->device_model) {
