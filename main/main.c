@@ -73,6 +73,11 @@ void app_main(void)
         return;
     }
 
+    if (GLOBAL_STATE.device_model == DEVICE_DISRUPTOR) {
+        // If self test didn't init RGB, then do it here
+        RGB_Init((void *) &GLOBAL_STATE, NORMAL_MODE);
+    }
+
     SYSTEM_init_system(&GLOBAL_STATE);
 
     // pull the wifi credentials and hostname out of NVS
@@ -92,11 +97,6 @@ void app_main(void)
     SYSTEM_init_peripherals(&GLOBAL_STATE);
 
     xTaskCreate(POWER_MANAGEMENT_task, "power management", 8192, (void *) &GLOBAL_STATE, 10, NULL);
-
-    if (GLOBAL_STATE.device_model == DEVICE_DISRUPTOR) {
-        // Create the LED strip manager task
-        xTaskCreate(RGB_LED_task, "RGB LED strip", 8192, (void *) &GLOBAL_STATE, 12, NULL);
-    }
 
     //start the API for AxeOS
     start_rest_server((void *) &GLOBAL_STATE);

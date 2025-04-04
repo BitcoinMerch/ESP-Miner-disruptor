@@ -313,7 +313,7 @@ void self_test(void * pvParameters)
 {
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
 
-    ESP_LOGI(TAG, "Running Self Tests");
+    ESP_LOGI(TAG, "------------Running Self Tests---------------");
 
     GLOBAL_STATE->SELF_TEST_MODULE.active = true;
 
@@ -363,11 +363,7 @@ void self_test(void * pvParameters)
 
     switch (GLOBAL_STATE->device_model) {
         case DEVICE_DISRUPTOR:
-            bool rgb_init = RGB_Init();
-            if(!rgb_init){
-                ESP_LOGE(TAG, "RGB Init failed");
-                tests_done(GLOBAL_STATE, TESTS_FAILED);
-            }
+            RGB_Init((void *) &GLOBAL_STATE, SELF_TEST_MODE);
             // Set LED white
             set_leds_to_color(LED_COLOR_WHITE);
             break;

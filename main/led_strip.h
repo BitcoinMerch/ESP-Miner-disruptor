@@ -39,6 +39,8 @@ struct led_color_t {
 };
 
 struct led_strip_t {
+    bool initialized;
+
     const enum rgb_led_type_t rgb_led_type;
     const uint32_t led_strip_length;
 

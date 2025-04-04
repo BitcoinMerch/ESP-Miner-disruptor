@@ -8,6 +8,9 @@
 #include "led_strip.h"
 #include "rgb_led_task.h"
 
+#define RGB_LED_TASK_SIZE             (8192)
+#define RGB_LED_TASK_PRIORITY         (12)
+
 #define LED_STRIP_LENGTH 8U
 #define LED_STRIP_RMT_INTR_NUM 19U // <- how is this determined?
 
@@ -23,8 +26,11 @@ struct led_strip_t led_strip = {
     .gpio = GPIO_NUM_21,
     .led_strip_buf_1 = led_strip_buf_1,
     .led_strip_buf_2 = led_strip_buf_2,
-    .led_strip_length = LED_STRIP_LENGTH
+    .led_strip_length = LED_STRIP_LENGTH,
+    .initialized = false
 };
+
+enum led_mode rgb_led_mode = NORMAL_MODE;
 
 /* An LED 'state' holds the LED number, and brightness levels for RED, GREEN, and BLUE values of one LED */
 /* An LED 'frame' consists of one led_state for each LED, and a duration for that frame */
@@ -98,27 +104,39 @@ void set_one_led(int lednum, uint8_t rval, uint8_t gval, uint8_t bval)
 
 void set_all_leds(uint8_t rval, uint8_t gval, uint8_t bval, uint8_t delaytime)
 {
-    int i,j;
+    int i;
 
     for(i=0; i<8; i++) {
-        for(j=0; j<i+1; j++) {
-            //turn on all the LEDs up to [i]
-            led_strip_set_pixel_rgb(&led_strip, j, rval, gval, bval);
-        }
-        led_strip_show(&led_strip);
-        vTaskDelay(delaytime / portTICK_PERIOD_MS);
+        //turn on all the LEDs
+        led_strip_set_pixel_rgb(&led_strip, i, rval, gval, bval);
     }
+    led_strip_show(&led_strip);
 }
 
-
-bool RGB_Init()
+bool RGB_Init(void *pvParameters, enum led_mode new_mode)
 {
-    led_strip.access_semaphore = xSemaphoreCreateBinary();
-    bool led_init_ok = led_strip_init(&led_strip);
-    if (!led_init_ok) {
-        ESP_LOGI(TAG, "ERROR initializing LED Strip");
-    } else {
-        ESP_LOGI(TAG, "LED Strip initialized");
+    bool led_init_ok = true;
+
+    rgb_led_mode = new_mode;
+    if (!led_strip.initialized) {
+        // Initialize the led strip
+        ESP_LOGI(TAG, "RGB_Init with mode = %d", rgb_led_mode);
+        led_strip.access_semaphore = xSemaphoreCreateBinary();
+        led_init_ok = led_strip_init(&led_strip);
+        if (!led_init_ok) {
+            ESP_LOGI(TAG, "ERROR initializing LED Strip");
+        } else {
+            ESP_LOGI(TAG, "LED Strip initialized");
+        }
+
+        // Create the LED strip manager task
+        xTaskCreate(RGB_LED_task, 
+                    "RGB LED strip", 
+                    RGB_LED_TASK_SIZE, 
+                    pvParameters, 
+                    RGB_LED_TASK_PRIORITY, 
+                    NULL);
+
     }
     return led_init_ok;
 }
@@ -152,77 +170,82 @@ void RGB_LED_task(void *pvParameters)
 
     ESP_LOGI(TAG, "Started RGB_LED_task");
 
-    // Initialize the led strip
-    led_strip.access_semaphore = xSemaphoreCreateBinary();
-    bool led_init_ok = led_strip_init(&led_strip);
-    if (!led_init_ok) {
-        ESP_LOGI(TAG, "ERROR initializing LED Strip");
-    } else {
-        ESP_LOGI(TAG, "LED Strip initialized");
+    while (1) {
 
-        //set_all_leds(0x30, 0x30, 0x30, 2000);
-        //led_strip_show(&led_strip);
+        if (rgb_led_mode == NORMAL_MODE) {
 
-        //set_one_led(0, 0x30, 0x30, 0x30);
-        //vTaskDelay(3000 / portTICK_PERIOD_MS);
+            ESP_LOGI(TAG, "RGB mode NORMAL");
 
-        //set_one_led(7, 0x30, 0x30, 0x30);
-        //vTaskDelay(3000 / portTICK_PERIOD_MS);
+            //set_all_leds(0x30, 0x30, 0x30, 2000);
+            //led_strip_show(&led_strip);
 
-        ptn = led_pattern_0;
-        pattern_len = PATTERN_0_LEN;
-        for (j=0; j<10; j++)
-        {
-            /* display each frame one by one */
-            for(framenum=0; framenum < pattern_len; framenum++) {
+            //set_one_led(0, 0x30, 0x30, 0x30);
+            //vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-                //ESP_LOGI(TAG, "Frame: %d", framenum);
+            //set_one_led(7, 0x30, 0x30, 0x30);
+            //vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-                /* set all the LEDs in this frame */
-                for(i=0; i<8; i++) {
-                    //turn on all the LEDs up to [i]
-                    //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
-                    //    ptn[framenum].leds[i].level_red, 
-                    //    ptn[framenum].leds[i].level_green, 
-                    //    ptn[framenum].leds[i].level_blue);
-                    led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
+            ptn = led_pattern_0;
+            pattern_len = PATTERN_0_LEN;
+            for (j=0; j<10; j++)
+            {
+                /* display each frame one by one */
+                for(framenum=0; framenum < pattern_len; framenum++) {
+
+                    //ESP_LOGI(TAG, "Frame: %d", framenum);
+
+                    /* set all the LEDs in this frame */
+                    for(i=0; i<8; i++) {
+                        //turn on all the LEDs up to [i]
+                        //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
+                        //    ptn[framenum].leds[i].level_red, 
+                        //    ptn[framenum].leds[i].level_green, 
+                        //    ptn[framenum].leds[i].level_blue);
+                        led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
                                             ptn[framenum].leds[i].level_green, 
                                             ptn[framenum].leds[i].level_blue);
+                    }
+                    /* display this frame */
+                    led_strip_show(&led_strip);
+                    /* delay for the time specified */
+                    vTaskDelay(ptn->duration / portTICK_PERIOD_MS);
                 }
-                /* display this frame */
-                led_strip_show(&led_strip);
-                /* delay for the time specified */
-                vTaskDelay(ptn->duration / portTICK_PERIOD_MS);
+            }
+
+            ptn = led_pattern_2;
+            pattern_len = PATTERN_2_LEN;
+            while (1)
+            {
+                /* display each frame one by one */
+                for(framenum=0; framenum < pattern_len; framenum++) {
+
+                    //ESP_LOGI(TAG, "Frame: %d", framenum);
+
+                    /* set all the LEDs in this frame */
+                    for(i=0; i<=8; i++) {
+                        //turn on all the LEDs up to [i]
+                        //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
+                        //    ptn[framenum].leds[i].level_red, 
+                        //    ptn[framenum].leds[i].level_green, 
+                        //    ptn[framenum].leds[i].level_blue);
+                        led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
+                                            ptn[framenum].leds[i].level_green, 
+                                            ptn[framenum].leds[i].level_blue);
+                    }
+                    /* display this frame */
+                    led_strip_show(&led_strip);
+                    /* delay for the time specified */
+                    vTaskDelay(ptn->duration / portTICK_PERIOD_MS);
+                }
             }
         }
 
-        ptn = led_pattern_2;
-        pattern_len = PATTERN_2_LEN;
-        while (1)
-        {
-            /* display each frame one by one */
-            for(framenum=0; framenum < pattern_len; framenum++) {
-
-                //ESP_LOGI(TAG, "Frame: %d", framenum);
-
-                /* set all the LEDs in this frame */
-                for(i=0; i<=8; i++) {
-                    //turn on all the LEDs up to [i]
-                    //ESP_LOGI(TAG, "r: %d  g: %d  b: %d", 
-                    //    ptn[framenum].leds[i].level_red, 
-                    //    ptn[framenum].leds[i].level_green, 
-                    //    ptn[framenum].leds[i].level_blue);
-                    led_strip_set_pixel_rgb(&led_strip, i, ptn[framenum].leds[i].level_red, 
-                                            ptn[framenum].leds[i].level_green, 
-                                            ptn[framenum].leds[i].level_blue);
-                }
-                /* display this frame */
-                led_strip_show(&led_strip);
-                /* delay for the time specified */
-                vTaskDelay(ptn->duration / portTICK_PERIOD_MS);
+        if (rgb_led_mode == SELF_TEST_MODE) {
+            ESP_LOGI(TAG, "RGB mode SELF_TEST");
+            while (1)
+            {
+                vTaskDelay(30 / portTICK_PERIOD_MS); // don't starve idle task and trigger watchdog timer
             }
-
-            //vTaskDelay(30 / portTICK_PERIOD_MS); // don't starve idle task and trigger watchdog timer
         }
     }
 }

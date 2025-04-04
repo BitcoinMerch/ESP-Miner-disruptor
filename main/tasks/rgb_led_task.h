@@ -20,10 +20,12 @@ typedef struct led_frame_t {
     int duration;
 } led_frame;
 
+enum led_mode {NORMAL_MODE, SELF_TEST_MODE};
+
 void set_one_led(int lednum, uint8_t rval, uint8_t gval, uint8_t bval);
 void set_all_leds(uint8_t rval, uint8_t gval, uint8_t bval, uint8_t delaytime);
 void set_leds_to_color(int LED_COLOR);
 void RGB_LED_task(void *pvParameters);
-bool RGB_Init();
+bool RGB_Init(void * pvParameters, enum led_mode new_mode);
 
 #endif

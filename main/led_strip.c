@@ -348,13 +348,12 @@ bool led_strip_init(struct led_strip_t *led_strip)
                                             NULL
                                          );
 
-    //BaseType_t task_created = xTaskCreate(led_strip_task, "LED strip task", 8192, (void *) &led_strip, 11, NULL);
-    //BaseType_t task_created = xTaskCreate(led_strip_task, "LED strip task", 8192, led_strip, 16, NULL);
-
     if (!task_created) {
         ESP_LOGI(TAG, "could not start led_strip_task");
         return false;
     }
+
+    led_strip->initialized = true;
 
     ESP_LOGI(TAG, "led_strip_task was started");
     return true;
