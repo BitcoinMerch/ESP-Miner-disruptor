@@ -122,14 +122,7 @@ void POWER_MANAGEMENT_task(void * pvParameters)
         case DEVICE_GAMMA:
             break;
         case DEVICE_DISRUPTOR:
-                // Configure VCORE enable pin as output, 1 is VCORE ON
-                gpio_config_t vcore_enable_conf = {
-                    .pin_bit_mask = (1ULL << GPIO_VCORE_ENABLE),
-                    .mode = GPIO_MODE_OUTPUT,
-                };
-                gpio_config(&vcore_enable_conf);
-                // turn on VCORE
-                gpio_set_level(GPIO_VCORE_ENABLE, 1);
+            break;
         default:
     }
 
@@ -177,8 +170,8 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     /* read current sensor */
                     /* TODO fix this ADC channel 2 reading */
                     //uint16_t new_curr_mA = (2 * ADC_get_curr());
-                    uint16_t new_curr_mA = (2 * 1000);
-                    power_management->voltage = 5000;  /* report in mV */
+                    uint16_t new_curr_mA = (1800);
+                    power_management->voltage = 4800;  /* report in mV */
                     power_management->current = new_curr_mA / 1000.0; /* report in AMPS */
                     power_management->power = power_management->voltage * (power_management->current / 1000);
 

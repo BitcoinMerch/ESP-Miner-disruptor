@@ -19,6 +19,7 @@
 #define BITAXE_VMAX 2.39
 #define BITAXE_VMIN 0.046
 
+#define GPIO_VCORE_ENABLE  CONFIG_GPIO_PLUG_SENSE
 static const char *TAG = "vcore.c";
 
 esp_err_t VCORE_init(GlobalState * global_state) {
@@ -43,7 +44,14 @@ esp_err_t VCORE_init(GlobalState * global_state) {
             break;
         // case DEVICE_HEX:
         case DEVICE_DISRUPTOR:
-                ESP_LOGI(TAG, "Disruptor- no VCORE init");
+                ESP_LOGI(TAG, "Disruptor- turning on vcore");
+                gpio_config_t vcore_enable_conf = {
+                    .pin_bit_mask = (1ULL << GPIO_VCORE_ENABLE),
+                    .mode = GPIO_MODE_OUTPUT,
+                };
+                gpio_config(&vcore_enable_conf);
+                // turn on VCORE
+                gpio_set_level(GPIO_VCORE_ENABLE, 1);
             break;
         default:
     }
