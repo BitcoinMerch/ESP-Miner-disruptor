@@ -3,8 +3,7 @@
     "idf.portWin": "COM5",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
-        "interface/ftdi/esp32_devkitj_v1.cfg",
-        "target/esp32s3.cfg"
+        "board/esp32s3-builtin.cfg"
     ],
     "files.associations": {
         "freertos.h": "c",
@@ -63,5 +62,11 @@
         "ssid"
     ],
     "idf.port": "/dev/ttyACM0",
-    "C_Cpp.intelliSenseEngine": "Tag Parser"
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "idf.espIdfPath": "/Users/benjaminwilson/esp/v5.4.1/esp-idf",
+    "idf.toolsPath": "/Users/benjaminwilson/.espressif",
+    "idf.pythonInstallPath": "/usr/bin/python3",
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32s3"
+    }
 }
