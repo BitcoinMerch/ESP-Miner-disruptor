@@ -30,7 +30,7 @@
     </div>
     <div class="col-12 lg:col-6 xl:col-4">
         <div class="card">
-            <h2>Update Firmware (Only use BitcoinMerch Disruptor Firmware) <span *ngIf="firmwareUpdateProgress != null">{{firmwareUpdateProgress}}%</span></h2>
+            <h2>Update Firmware <span *ngIf="firmwareUpdateProgress != null">{{firmwareUpdateProgress}}%</span></h2>
             <!-- <input type="file" id="file" (change)="otaUpdate($event)" accept=".bin"> -->
             <p-fileUpload #firmwareUpload [customUpload]="true" mode="basic" accept=".bin" (uploadHandler)="otaUpdate($event)"
                 [auto]="true" chooseLabel="Browse"></p-fileUpload>
