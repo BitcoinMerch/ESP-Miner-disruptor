@@ -23,7 +23,7 @@ export class GithubUpdateService {
 
   public getReleases(): Observable<GithubRelease[]> {
     return this.httpClient.get<GithubRelease[]>(
-      'https://github.com/BitcoinMerch/ESP-Miner-disruptor/releases'
+      'https://api.github.com/repos/BitcoinMerch/ESP-Miner-disruptor/releases'
     ).pipe(
       map((releases: GithubRelease[]) => releases.filter((release: GithubRelease) => !release.prerelease))
     );
